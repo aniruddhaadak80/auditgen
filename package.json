@@ -1,0 +1,48 @@
+{
+  "name": "auditgen",
+  "version": "0.1.0",
+  "description": "Git-native SOC 2 and ISO 27001 readiness auditor. Reads your repository and GitHub configuration, proves each control with tamper-evident evidence, and generates the artifacts an auditor actually asks for. Self-hosted, model-agnostic.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "bin": {
+    "auditgen": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./mcp": "./dist/mcp/server.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pretest": "tsc -p tsconfig.test.json",
+    "test": "node --test \"build-test/test/**/*.test.js\"",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "soc2",
+    "iso27001",
+    "compliance",
+    "audit",
+    "security",
+    "evidence",
+    "compliance-as-code",
+    "mcp",
+    "open-source",
+    "self-hosted"
+  ],
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2"
+  }
+}

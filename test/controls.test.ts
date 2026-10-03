@@ -1,0 +1,91 @@
+import { describe, it } from "node:test";
+import assert from "node:assert/strict";
+import {
+  ALL_CONTROLS,
+  SOC2_CONTROLS,
+  ISO27001_CONTROLS,
+  controlsFor,
+  getControl,
+  collectorsNeeded,
+} from "../src/controls/index.js";
+import { getCollector, COLLECTORS } from "../src/collectors/index.js";
+import { MANUAL_KEYS } from "../src/collectors/manual.js";
+
+describe("control registry", () => {
+  it("has no duplicate control ids", () => {
+    const seen = new Set<string>();
+    const dupes: string[] = [];
+    for (const c of ALL_CONTROLS) {
+      if (seen.has(c.id)) dupes.push(c.id);
+      seen.add(c.id);
+    }
+    assert.deepEqual(dupes, []);
+  });
+
+  it("maps every control to a collector that is actually registered", () => {
+    const missing = ALL_CONTROLS.filter(
+      (c) => c.collector !== "manual" && !getCollector(c.collector),
+    ).map((c) => `${c.id} -> ${c.collector}`);
+    assert.deepEqual(missing, [], `unregistered collectors: ${missing.join(", ")}`);
+  });
+
+  it("maps every manual control to a declaration key", () => {
+    const manual = ALL_CONTROLS.filter((c) => c.manual);
+    assert.ok(manual.length > 0, "expected some manual controls");
+    assert.deepEqual(
+      manual.map((c) => c.id),
+      ["CC3.2", "A1.2", "A.7.4"],
+    );
+    assert.equal(MANUAL_KEYS.length, 3);
+  });
+
+  it("gives every control a requirement, guidance and category", () => {
+    for (const c of ALL_CONTROLS) {
+      assert.ok(c.requirement.length > 30, `${c.id} requirement too short`);
+      assert.ok(c.guidance.length > 30, `${c.id} guidance too short`);
+      assert.ok(c.category.length > 0, `${c.id} has no category`);
+      assert.match(c.id, /^(CC\d+\.\d+|A\.\d+\.\d+|A1\.\d+)$/, `${c.id} malformed`);
+    }
+  });
+
+  it("assigns each control the framework matching its id", () => {
+    for (const c of ALL_CONTROLS) {
+      if (c.id.startsWith("CC") || c.id.startsWith("A1")) {
+        assert.equal(c.framework, "soc2", `${c.id} should be soc2`);
+      } else {
+        assert.equal(c.framework, "iso27001", `${c.id} should be iso27001`);
+      }
+    }
+  });
+
+  it("filters by framework", () => {
+    assert.equal(controlsFor(["soc2"]).length, SOC2_CONTROLS.length);
+    assert.equal(controlsFor(["iso27001"]).length, ISO27001_CONTROLS.length);
+    assert.equal(
+      controlsFor(["soc2", "iso27001"]).length,
+      ALL_CONTROLS.length,
+    );
+    assert.deepEqual(controlsFor([]), []);
+  });
+
+  it("resolves a control by id", () => {
+    assert.equal(getControl("CC6.1")?.title, "Logical access security");
+    assert.equal(getControl("A.8.15")?.title, "Logging");
+    assert.equal(getControl("nope"), undefined);
+  });
+
+  it("reports the collectors a control set needs, deduplicated", () => {
+    const needed = collectorsNeeded(controlsFor(["soc2", "iso27001"]));
+    assert.equal(new Set(needed).size, needed.length);
+    assert.ok(needed.includes("github.branch_protection"));
+    assert.ok(needed.includes("git.secret_history"));
+    assert.ok(needed.includes("manual"));
+  });
+
+  it("registers every collector under its own name", () => {
+    for (const c of COLLECTORS) {
+      assert.equal(getCollector(c.name), c, `${c.name} not resolvable by name`);
+      assert.match(c.name, /^(github|git)\.[a-z_]+$/, `${c.name} naming`);
+    }
+  });
+});

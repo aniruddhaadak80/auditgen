@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build-test/
+*.tsbuildinfo
+
+# auditgen output
+auditgen-report.json
+auditgen-report.md
+auditgen-out/
+.auditgen/
