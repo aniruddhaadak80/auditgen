@@ -37,6 +37,11 @@ jobs:
       - run: npm ci
       - run: npm run build
       - name: Run auditgen against this repository
+        # This step produces a report, it does not gate the build. `auditgen
+        # audit` exits 1 when it finds gaps, which for this repository is the
+        # expected state and the reason the report exists. Only the `verify` job
+        # above is a required status check.
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
