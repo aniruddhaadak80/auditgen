@@ -314,6 +314,7 @@ export interface RepoResponse {
   default_branch: string;
   visibility?: string;
   description?: string | null;
+  homepage?: string | null;
   created_at: string;
   pushed_at: string;
   open_issues_count: number;
