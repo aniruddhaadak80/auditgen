@@ -8,3 +8,7 @@ auditgen-report.json
 auditgen-report.md
 auditgen-out/
 .auditgen/
+
+# generated auditor documents
+system_description.md
+statement_of_applicability.md
