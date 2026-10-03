@@ -188,19 +188,7 @@ export const ISO27001_CONTROLS: Control[] = [
     guidance:
       "Tests that must pass before a change is accepted. Reviewer verifies the gate is a required check, not an optional job.",
   },
-  {
-    id: "A.8.32",
-    framework: "iso27001",
-    title: "Change management",
-    requirement:
-      "Changes to production or development information processing facilities and information processing systems shall be subject to change management procedures.",
-    category: "Organizational",
-    collector: "github.pr_review",
-    manual: false,
-    guidance:
-      "Every change reviewed, tested and approved before it lands. Protected branches with required reviews and a required status check are the artifacts.",
-  },
-  {
+{
     id: "A.7.4",
     framework: "iso27001",
     title: "Physical security",
@@ -435,10 +423,10 @@ export const ISO27001_CONTROLS: Control[] = [
     requirement:
       "The organization shall provide a means for personnel and interested parties to report observed or suspected information security events through appropriate channels.",
     category: "People",
-    collector: "github.security_md",
+    collector: "web.policy_publication",
     manual: false,
     guidance:
-      "The channel must exist and be reachable by someone outside the team. A private reporting address in a published policy is the artefact.",
+      "An RFC 9116 security.txt with a Contact field and a future Expires is the channel an outside reporter will find. A lapsed expiry means researchers assume nobody is listening.",
   },
   {
     id: "A.8.10",

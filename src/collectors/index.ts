@@ -1,10 +1,12 @@
 import { type Collector, type CollectorResult, type TreeIndex } from "./types.js";
 import { GITHUB_COLLECTORS } from "./github.js";
 import { GIT_COLLECTORS } from "./git.js";
+import { WEB_COLLECTORS } from "./web.js";
 
 export * from "./types.js";
 export { GITHUB_COLLECTORS } from "./github.js";
 export { GIT_COLLECTORS } from "./git.js";
+export { WEB_COLLECTORS, candidateBaseUrls, parseSecurityTxt } from "./web.js";
 export { manualResultFor, MANUAL_SPECS, MANUAL_KEYS } from "./manual.js";
 
 import type { GitHubClient } from "../util/github.js";
@@ -12,6 +14,7 @@ import type { GitHubClient } from "../util/github.js";
 export const COLLECTORS: Collector[] = [
   ...GITHUB_COLLECTORS,
   ...GIT_COLLECTORS,
+  ...WEB_COLLECTORS,
 ];
 
 const BY_NAME = new Map(COLLECTORS.map((c) => [c.name, c]));

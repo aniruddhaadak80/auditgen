@@ -96,7 +96,11 @@ describe("control registry", () => {
   it("registers every collector under its own name", () => {
     for (const c of COLLECTORS) {
       assert.equal(getCollector(c.name), c, `${c.name} not resolvable by name`);
-      assert.match(c.name, /^(github|git)\.[a-z_]+$/, `${c.name} naming`);
+      assert.match(
+        c.name,
+        /^(github|git|web)\.[a-z_]+$/,
+        `${c.name} naming`,
+      );
     }
   });
 
@@ -115,8 +119,9 @@ describe("control registry", () => {
   it("never routes two frameworks through the same collector name mismatch", () => {
     for (const c of ALL_CONTROLS) {
       if (c.manual) continue;
-      assert.ok(
-        c.collector.startsWith("github.") || c.collector.startsWith("git."),
+      assert.match(
+        c.collector,
+        /^(github|git|web)\./,
         `${c.id} has a malformed collector: ${c.collector}`,
       );
     }
