@@ -19,6 +19,7 @@ import {
   generateSystemDescription,
 } from "./report/docs.js";
 import { verifyChain } from "./util/hash.js";
+import { diffReports, renderDiff } from "./report/diff.js";
 import { serveStdio } from "./mcp/server.js";
 
 const VERSION = "0.1.0";
@@ -113,6 +114,7 @@ Usage
   auditgen audit [owner/repo] [options]     Run an audit and print a report
   auditgen doc <type> [options]             Generate an auditor-facing document
   auditgen controls [options]               List every evaluable control
+  auditgen diff <before.json> <after.json>  Compare two audits
   auditgen verify <report.json>             Verify an evidence hash chain
   auditgen init                             Write a starter auditgen.json
   auditgen serve [owner/repo]               Run the MCP server on stdio
@@ -145,6 +147,7 @@ Examples
   auditgen audit
   auditgen audit opencode-ai/opencode --framework soc2,iso27001 --format markdown
   auditgen audit --offline
+  auditgen diff baseline.json report.json
   auditgen doc system_description --period "1 Apr 2026 to 30 Jun 2026"`);
   process.exit(0);
 }
@@ -322,6 +325,32 @@ function commandVerify(args: Args): number {
   return 1;
 }
 
+function commandDiff(args: Args): number {
+  const [beforePath, afterPath] = args.positional;
+  if (!beforePath || !afterPath) {
+    fail("Provide two reports: auditgen diff before.json after.json");
+  }
+  const cwd = process.cwd();
+
+  const load = (p: string): Report => {
+    const full = resolve(cwd, p);
+    if (!existsSync(full)) fail(`No such file: ${p}`);
+    try {
+      return JSON.parse(readFileSync(full, "utf8")) as Report;
+    } catch (err) {
+      fail(
+        `${p} is not valid JSON: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  };
+
+  const diff = diffReports(load(beforePath), load(afterPath));
+  process.stdout.write(renderDiff(diff) + "\n");
+
+  // A regression should fail a pipeline just like a fresh gap does.
+  return diff.summary.regressed > 0 ? 1 : 0;
+}
+
 function commandInit(): number {
   const target = resolve(process.cwd(), "auditgen.json");
   if (existsSync(target)) {
@@ -333,7 +362,8 @@ function commandInit(): number {
   })();
 
   const template = {
-    $schema: "https://auditgen.dev/schema.json",
+    $schema:
+      "https://raw.githubusercontent.com/aniruddhaadak80/auditgen/main/schema/auditgen.schema.json",
     organizationName: "",
     systemName: `${owner}/${repo}`,
     systemDescription:
@@ -344,7 +374,10 @@ function commandInit(): number {
     frameworks: ["soc2"],
     twoFactorEnforced: false,
     riskRegisterMaintained: false,
+    fraudRiskAssessed: false,
     backupRecoveryTested: false,
+    capacityManaged: false,
+    trainingCompleted: false,
     physicalSecurityCovered: false,
   };
   writeFileSync(target, JSON.stringify(template, null, 2) + "\n", "utf8");
@@ -410,6 +443,9 @@ async function main(): Promise<void> {
       break;
     case "verify":
       code = commandVerify(args);
+      break;
+    case "diff":
+      code = commandDiff(args);
       break;
     case "init":
       code = commandInit();

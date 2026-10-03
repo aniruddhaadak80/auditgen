@@ -1,0 +1,74 @@
+# Depends on a `pull_request` event in the same repository.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to publish from
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  # A release must never ship if verification does not pass on the same commit.
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - run: npm run build
+
+      - name: Check the working tree is clean after build
+        run: git diff --exit-code
+
+      # Proves the published artifact contains dist/ and the docs, and nothing
+      # else. A release that silently omits dist/ is the classic npm footgun.
+      - name: Verify the package contents
+        run: npm pack --dry-run
+
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish a GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ## Verify the evidence chain
+
+            Every report auditgen produces is a tamper-evident SHA-256 chain.
+            To check a report has not been edited after generation:
+
+            ```
+            npx auditgen verify your-report.json
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

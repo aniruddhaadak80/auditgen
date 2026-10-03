@@ -214,4 +214,136 @@ export const SOC2_CONTROLS: Control[] = [
     guidance:
       "Requires operational evidence: restore test results, RTO/RPO definitions, backup retention. Cannot be derived from source code.",
   },
+  {
+    id: "CC1.2",
+    framework: "soc2",
+    title: "Board oversight of the internal control system",
+    requirement:
+      "The entity demonstrates oversight of the development and performance of its internal control system.",
+    category: "Control Environment",
+    collector: "github.governance",
+    manual: false,
+    guidance:
+      "Reviewer looks for governance artefacts: an open licence, a code of conduct, and a documented contribution process. Records of actual board review are supplied separately.",
+  },
+  {
+    id: "CC2.1",
+    framework: "soc2",
+    title: "Quality of information",
+    requirement:
+      "The entity obtains or generates and uses relevant, quality information to support the functioning of internal control.",
+    category: "Communication and Information",
+    collector: "github.ci_runs",
+    manual: false,
+    guidance:
+      "Quality information means results that are current and accurate. A check that last ran three months ago does not support the control operating today.",
+  },
+  {
+    id: "CC2.3",
+    framework: "soc2",
+    title: "External communication",
+    requirement:
+      "The entity communicates, externally, information about the objectives and responsibilities for achieving its internal control objectives.",
+    category: "Communication and Information",
+    collector: "github.security_md",
+    manual: false,
+    guidance:
+      "External communication includes what a security researcher or customer is told. A published policy with a reporting channel is the observable artefact.",
+  },
+  {
+    id: "CC3.3",
+    framework: "soc2",
+    title: "Fraud risk",
+    requirement:
+      "The entity considers the potential for fraud in assessing risks to the achievement of its objectives.",
+    category: "Risk Assessment",
+    collector: "manual",
+    manual: true,
+    guidance:
+      "Requires a documented fraud risk assessment. Cannot be derived from source code. Typically addressed through whistleblower policy, code of conduct, and segregation of duties on merge rights.",
+  },
+  {
+    id: "CC3.4",
+    framework: "soc2",
+    title: "Significant change",
+    requirement:
+      "The entity identifies and assesses changes that could significantly impact the system of internal control.",
+    category: "Risk Assessment",
+    collector: "github.ci_runs",
+    manual: false,
+    guidance:
+      "Change is detected by continuous verification. A gate that is failing on most branches is evidence that change is happening faster than it is being validated.",
+  },
+  {
+    id: "CC5.1",
+    framework: "soc2",
+    title: "Selection and development of control activities",
+    requirement:
+      "The entity selects and develops control activities that contribute to the mitigation of risks to the achievement of objectives.",
+    category: "Control Activities",
+    collector: "github.branch_protection",
+    manual: false,
+    guidance:
+      "The controls themselves: a merge gate, required reviews, required status checks. Reviewer inspects the policy-as-code that enforces them.",
+  },
+  {
+    id: "CC5.3",
+    framework: "soc2",
+    title: "Policies and procedures",
+    requirement:
+      "The entity deploys control activities through policies that establish what is expected and in procedures that put policies into action.",
+    category: "Control Activities",
+    collector: "github.governance",
+    manual: false,
+    guidance:
+      "A documented policy is not yet a procedure. Reviewer wants the written expectation plus the automation that enforces it, and both are observable here.",
+  },
+  {
+    id: "CC6.5",
+    framework: "soc2",
+    title: "Disposal of assets",
+    requirement:
+      "The entity disposes of assets to prevent unauthorized use or disclosure of sensitive information.",
+    category: "Logical and Physical Access",
+    collector: "git.secret_history",
+    manual: false,
+    guidance:
+      "Deletion without rotation is not disposal, because the object remains retrievable from history. Reviewer expects evidence that exposed credentials were rotated, not merely deleted.",
+  },
+  {
+    id: "CC7.5",
+    framework: "soc2",
+    title: "Recovery from identified security incidents",
+    requirement:
+      "The entity identifies, develops, and implements activities to recover from identified security incidents.",
+    category: "System Operations",
+    collector: "github.advisories",
+    manual: false,
+    guidance:
+      "Recovery means the reporting path is exercised and closed out. Advisories with a recorded resolution demonstrate the loop completes rather than only opening.",
+  },
+  {
+    id: "A1.1",
+    framework: "soc2",
+    title: "Capacity management",
+    requirement:
+      "The entity monitors and evaluates current processing capacity and uses projections to meet future capacity requirements.",
+    category: "Availability",
+    collector: "manual",
+    manual: true,
+    guidance:
+      "Out of scope for a repository-level tool. Record the hosting provider's capacity commitments or your own load-test results.",
+  },
+  {
+    id: "A1.3",
+    framework: "soc2",
+    title: "Recovery plan testing",
+    requirement:
+      "The entity tests recovery plan procedures supporting system recovery to meet its objectives.",
+    category: "Availability",
+    collector: "github.ci_runs",
+    manual: false,
+    guidance:
+      "Testing of the pipeline is the observable analogue of testing a recovery plan: a runbook that is never exercised is not proven. Actual disaster recovery testing is supplied separately.",
+  },
 ];

@@ -108,6 +108,12 @@ export interface Declarations {
   riskRegisterMaintained?: boolean;
   /** Physical or cloud-provider security attestation covers premises. */
   physicalSecurityCovered?: boolean;
+  /** Documented fraud risk assessment exists and is current. */
+  fraudRiskAssessed?: boolean;
+  /** Security awareness training delivered and recorded. */
+  trainingCompleted?: boolean;
+  /** Capacity is monitored against projected requirements. */
+  capacityManaged?: boolean;
   /** Organisation name for the generated documents. */
   organizationName?: string;
   /** System name for the generated documents. */

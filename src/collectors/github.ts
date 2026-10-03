@@ -953,6 +953,171 @@ export const actionsPermissionsCollector: Collector = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// github.ci_runs  ->  CC2.1, CC3.4, CC4.1, CC5.1, A.5.33, A.5.36
+// ---------------------------------------------------------------------------
+
+/**
+ * Operating effectiveness.
+ *
+ * Every other collector answers "is this configured". This one answers "did it
+ * ever actually run, and does it keep passing". A required status check that has
+ * never executed is an aspiration, not a control, and a control that has been
+ * failing for weeks is worse than no control because it manufactures evidence.
+ */
+export const ciRunsCollector: Collector = {
+  name: "github.ci_runs",
+  async run(ctx) {
+    if (ctx.offline) return OFFLINE(this.name, ctx);
+
+    const res = await ctx.gh.actionRuns(50);
+    if (!res.ok || !res.data) {
+      return INACCESSIBLE(
+        this.name,
+        ctx,
+        res.reason ?? "unknown",
+        "Provide a token with actions:read to inspect workflow run history.",
+      );
+    }
+
+    const runs = res.data.workflow_runs ?? [];
+    const conclusions = runs.filter((r) => r.conclusion !== null);
+    const failed = conclusions.filter((r) => r.conclusion !== "success");
+    const total = conclusions.length;
+    const successRate = total > 0 ? (total - failed.length) / total : 0;
+
+    const latest = runs.length > 0 ? runs[0] : undefined;
+    const latestAt = latest?.created_at ? Date.parse(latest.created_at) : NaN;
+    const ageDays =
+      Number.isNaN(latestAt)
+        ? null
+        : Math.floor((Date.now() - latestAt) / 86_400_000);
+
+    // Which branches changes actually landed on, as a proxy for whether the gate
+    // covers the whole surface rather than one long-lived branch.
+    const branches = [...new Set(runs.map((r) => r.head_branch))].sort();
+    const defaultRuns = runs.filter((r) => r.head_branch === ctx.defaultBranch).length;
+
+    const gaps: string[] = [];
+    if (total === 0) {
+      gaps.push(
+        "No completed workflow runs are visible. Configured checks that have never executed cannot be shown to operate.",
+      );
+    }
+    if (failed.length > 0) {
+      const recent = failed.slice(0, 5).map((r) => `${r.name}#${r.run_number} (${r.conclusion})`);
+      gaps.push(
+        `${failed.length} of the last ${total} completed runs concluded ${failed.length === 1 ? "unsuccessfully" : "unsuccessfully"}: ${recent.join(", ")}. A red check that is not triaged is an open known issue.`,
+      );
+    }
+    if (ageDays !== null && ageDays > 30) {
+      gaps.push(
+        `The most recent workflow run was ${ageDays} days ago. Monitoring that has stopped running is not monitoring.`,
+      );
+    }
+    if (defaultRuns === 0 && branches.length > 0) {
+      gaps.push(
+        `No runs recorded against the default branch "${ctx.defaultBranch}"; observed branches were ${branches.slice(0, 5).join(", ")}.`,
+      );
+    }
+
+    const passed = total > 0 && failed.length === 0 && (ageDays === null || ageDays <= 30);
+
+    return one({
+      title:
+        total === 0
+          ? "No completed workflow runs are visible"
+          : `${total} completed run(s), ${(successRate * 100).toFixed(0)}% successful, most recent ${ageDays ?? "?"} day(s) ago`,
+      passed,
+      source: repoUrl(ctx, "/actions"),
+      details: {
+        completedRuns: total,
+        successful: total - failed.length,
+        failed: failed.length,
+        successRate: Number(successRate.toFixed(4)),
+        mostRecentRunAt: latest?.created_at ?? null,
+        daysSinceLastRun: ageDays,
+        distinctBranches: branches.slice(0, 20),
+        defaultBranchRuns: defaultRuns,
+        recentFailures: failed.slice(0, 10).map((r) => ({
+          workflow: r.name,
+          runNumber: r.run_number,
+          conclusion: r.conclusion,
+          branch: r.head_branch,
+          createdAt: r.created_at,
+        })),
+      },
+      gaps,
+    });
+  },
+};
+
+// ---------------------------------------------------------------------------
+// github.governance  ->  CC1.2, CC5.3, A.5.31, A.5.37
+// ---------------------------------------------------------------------------
+
+const GOVERNANCE_FILES: Record<string, string> = {
+  "LICENSE": "Licence terms",
+  "LICENSE.md": "Licence terms",
+  "LICENCE": "Licence terms",
+  "CODE_OF_CONDUCT.md": "Code of conduct",
+  "CONTRIBUTING.md": "Contribution process",
+  ".github/CONTRIBUTING.md": "Contribution process",
+  ".github/pull_request_template.md": "Pull request template",
+  "PULL_REQUEST_TEMPLATE.md": "Pull request template",
+  ".github/CODEOWNERS": "Ownership definitions",
+  "SECURITY.md": "Security policy",
+  ".github/SECURITY.md": "Security policy",
+  "SUPPORT.md": "Support policy",
+  "CHANGELOG.md": "Change history",
+};
+
+export const governanceCollector: Collector = {
+  name: "github.governance",
+  async run(ctx) {
+    if (ctx.offline) return OFFLINE(this.name, ctx);
+
+    const present = Object.keys(GOVERNANCE_FILES).filter((p) =>
+      ctx.tree.has(p),
+    );
+    const kinds = [...new Set(present.map((p) => GOVERNANCE_FILES[p]!))].sort();
+
+    const repo = await ctx.gh.getRepo();
+    const spdx = repo?.license?.spdx_id ?? null;
+
+    const gaps: string[] = [];
+    if (!present.some((p) => p.toUpperCase().startsWith("LICEN"))) {
+      gaps.push(
+        "No LICENSE file. Absence of licence terms is a governance finding and blocks reuse of the code.",
+      );
+    }
+    if (!ctx.tree.has("CODE_OF_CONDUCT.md")) {
+      gaps.push(
+        "No code of conduct published, which is an expected artefact under the organisational criteria.",
+      );
+    }
+    if (!present.some((p) => p.toUpperCase().includes("CONTRIBUTING"))) {
+      gaps.push(
+        "No CONTRIBUTING guide, so the documented procedure for contributing changes is missing.",
+      );
+    }
+
+    return one({
+      title: `Repository publishes ${kinds.length} governance artefact(s)${spdx ? ` under ${spdx}` : ""}`,
+      passed: present.some((p) => p.toUpperCase().startsWith("LICEN")),
+      source: repoUrl(ctx),
+      details: {
+        spdxLicense: spdx,
+        licenseName: repo?.license?.name ?? null,
+        artefactsPresent: kinds,
+        files: present,
+        archived: repo?.archived ?? null,
+      },
+      gaps,
+    });
+  },
+};
+
 export const GITHUB_COLLECTORS: Collector[] = [
   branchProtectionCollector,
   codeownersCollector,
@@ -961,6 +1126,8 @@ export const GITHUB_COLLECTORS: Collector[] = [
   securityMdCollector,
   dependabotCollector,
   ciWorkflowsCollector,
+  ciRunsCollector,
+  governanceCollector,
   envProtectionCollector,
   prReviewCollector,
   advisoriesCollector,

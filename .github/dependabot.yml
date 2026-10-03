@@ -1,0 +1,40 @@
+# auditgen dogfoods its own advice: dependency and action updates are declared here,
+# which is the evidence CC5.2, CC7.1 and A.8.8 look for.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - security
+    commit-message:
+      prefix: "deps"
+    groups:
+      typescript-dev:
+        applies-to: version-updates
+        patterns:
+          - typescript
+          - "@types/*"
+      dev-tooling:
+        applies-to: version-updates
+        dependency-type: development
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"

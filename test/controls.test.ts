@@ -9,7 +9,7 @@ import {
   collectorsNeeded,
 } from "../src/controls/index.js";
 import { getCollector, COLLECTORS } from "../src/collectors/index.js";
-import { MANUAL_KEYS } from "../src/collectors/manual.js";
+import { MANUAL_KEYS, MANUAL_SPECS } from "../src/collectors/manual.js";
 
 describe("control registry", () => {
   it("has no duplicate control ids", () => {
@@ -32,11 +32,22 @@ describe("control registry", () => {
   it("maps every manual control to a declaration key", () => {
     const manual = ALL_CONTROLS.filter((c) => c.manual);
     assert.ok(manual.length > 0, "expected some manual controls");
+    // Every manual control must have an attestation spec, otherwise a satisfied
+    // declaration could never be expressed and the control is permanently stuck.
+    const unmapped = manual.filter((c) => !MANUAL_SPECS[c.id]);
     assert.deepEqual(
-      manual.map((c) => c.id),
-      ["CC3.2", "A1.2", "A.7.4"],
+      unmapped.map((c) => c.id),
+      [],
+      `manual controls without an attestation key: ${unmapped.map((c) => c.id).join(", ")}`,
     );
-    assert.equal(MANUAL_KEYS.length, 3);
+    for (const key of Object.values(MANUAL_SPECS)) {
+      assert.equal(
+        ALL_CONTROLS.some((c) => c.manual && c.id in MANUAL_SPECS),
+        true,
+      );
+      assert.ok(key.requirement.length > 20, "each spec needs a requirement");
+      assert.ok(key.reference.length > 5, "each spec needs a reference");
+    }
   });
 
   it("gives every control a requirement, guidance and category", () => {
@@ -86,6 +97,28 @@ describe("control registry", () => {
     for (const c of COLLECTORS) {
       assert.equal(getCollector(c.name), c, `${c.name} not resolvable by name`);
       assert.match(c.name, /^(github|git)\.[a-z_]+$/, `${c.name} naming`);
+    }
+  });
+
+  it("covers a meaningful share of both frameworks", () => {
+    // A registry that quietly shrinks is worse than one that never grew.
+    assert.ok(
+      controlsFor(["soc2"]).length >= 25,
+      "expected at least 25 SOC 2 controls",
+    );
+    assert.ok(
+      controlsFor(["iso27001"]).length >= 40,
+      "expected at least 40 ISO 27001 controls",
+    );
+  });
+
+  it("never routes two frameworks through the same collector name mismatch", () => {
+    for (const c of ALL_CONTROLS) {
+      if (c.manual) continue;
+      assert.ok(
+        c.collector.startsWith("github.") || c.collector.startsWith("git."),
+        `${c.id} has a malformed collector: ${c.collector}`,
+      );
     }
   });
 });

@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/aniruddhaadak80/auditgen/blob/main/schema/auditgen.schema.json",
+  "title": "auditgen configuration",
+  "description": "Operator attestations and report metadata. Every attestation defaults to false and stays false until you can evidence it; a declaration marked true is recorded in the report as attested rather than observed.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "organizationName": {
+      "type": "string",
+      "description": "Reporting entity name, used in generated documents."
+    },
+    "systemName": {
+      "type": "string",
+      "description": "Name of the system in scope, used in generated documents."
+    },
+    "systemDescription": {
+      "type": "string",
+      "description": "What the system does and who it serves. auditgen will not invent this; an empty value is reported as an unfilled field in the System Description."
+    },
+    "hostingEnvironment": {
+      "type": "string",
+      "description": "Where the system runs, for example \"GitHub Enterprise Cloud, us-east-1, AWS EC2 t3.large\"."
+    },
+    "dataCategories": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Categories of information processed. Drives which confidentiality and privacy criteria are in scope."
+    },
+    "trustServicesCriteria": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Trust Services Criteria in scope. Defaults to the Security criterion."
+    },
+    "frameworks": {
+      "type": "array",
+      "items": { "enum": ["soc2", "iso27001"] },
+      "default": ["soc2"],
+      "description": "Frameworks to evaluate when none are passed on the command line."
+    },
+    "repositories": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Repositories to audit when one config covers several."
+    },
+    "samplePullRequests": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Merged pull requests sampled when checking review practice."
+    },
+    "outputDir": {
+      "type": "string",
+      "description": "Directory for generated documents."
+    },
+    "twoFactorEnforced": {
+      "type": "boolean",
+      "default": false,
+      "description": "ATTESTATION. Multi-factor authentication is enforced for all organisation members. GitHub exposes no API for this, so auditgen cannot verify it. Attach a screenshot of Settings > Authentication security to the auditor pack."
+    },
+    "riskRegisterMaintained": {
+      "type": "boolean",
+      "default": false,
+      "description": "ATTESTATION. A current risk register or threat model exists with owners and review dates. Covers SOC 2 CC3.2."
+    },
+    "fraudRiskAssessed": {
+      "type": "boolean",
+      "default": false,
+      "description": "ATTESTATION. A fraud risk assessment is documented, including how segregation of duties on merge rights is meant to work. Covers SOC 2 CC3.3."
+    },
+    "backupRecoveryTested": {
+      "type": "boolean",
+      "default": false,
+      "description": "ATTESTATION. Backups have been restore-tested against a documented RTO and RPO. Covers SOC 2 A1.2."
+    },
+    "capacityManaged": {
+      "type": "boolean",
+      "default": false,
+      "description": "ATTESTATION. Capacity is monitored against projected requirements. Covers SOC 2 A1.1."
+    },
+    "trainingCompleted": {
+      "type": "boolean",
+      "default": false,
+      "description": "ATTESTATION. Security awareness training is delivered and recorded, with policy acknowledgements. Covers ISO 27001 A.6.3."
+    },
+    "physicalSecurityCovered": {
+      "type": "boolean",
+      "default": false,
+      "description": "ATTESTATION. Physical and environmental security is inherited from the hosting provider's attestation rather than self-managed. Covers ISO 27001 A.7.4."
+    }
+  }
+}

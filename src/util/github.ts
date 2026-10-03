@@ -218,6 +218,18 @@ export class GitHubClient {
   }
 
   /**
+   * Recent workflow runs. This is what distinguishes a control that is configured
+   * from one that is operating: a required check nobody has run proves nothing.
+   */
+  async actionRuns(
+    perPage = 50,
+  ): Promise<GhResponse<ActionRunsResponse>> {
+    return this.request<ActionRunsResponse>(
+      `/repos/${this.owner}/${this.repo}/actions/runs?per_page=${perPage}`,
+    );
+  }
+
+  /**
    * GitHub Environments. Each may carry required reviewers, which is the
    * closest verifiable analogue of privileged-access approval for a repository.
    */
@@ -387,6 +399,22 @@ export interface IssueResponse {
   closed_at: string | null;
   labels: { name: string }[];
   is_pr?: boolean;
+}
+
+export interface ActionRunsResponse {
+  total_count: number;
+  workflow_runs: {
+    id: number;
+    name: string;
+    event: string;
+    status: string;
+    conclusion: string | null;
+    path: string;
+    head_branch: string;
+    created_at: string;
+    updated_at: string;
+    run_number: number;
+  }[];
 }
 
 export interface EnvironmentResponse {

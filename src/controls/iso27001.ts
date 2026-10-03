@@ -212,4 +212,328 @@ export const ISO27001_CONTROLS: Control[] = [
     guidance:
       "Out of scope for a repository-level tool. For a fully remote organization, record the cloud provider's attestation instead.",
   },
+  {
+    id: "A.5.1",
+    framework: "iso27001",
+    title: "Policies for information security",
+    requirement:
+      "Information security policy and topic-specific policies shall be defined, approved by management, published and communicated to, and acknowledged by, relevant personnel.",
+    category: "Organizational",
+    collector: "github.governance",
+    manual: false,
+    guidance:
+      "Managerial approval and staff acknowledgement are documentary. The publishable part of a policy set is observable: a security policy, a contribution policy, a licence.",
+  },
+  {
+    id: "A.5.7",
+    framework: "iso27001",
+    title: "Threat intelligence",
+    requirement:
+      "Information relating to information security threats shall be collected and analysed to produce threat intelligence.",
+    category: "Organizational",
+    collector: "github.advisories",
+    manual: false,
+    guidance:
+      "Intelligence in a software organisation is the vulnerability advisory stream and the dispositions made against it. A stream with no dispositions is not intelligence, it is noise.",
+  },
+  {
+    id: "A.5.12",
+    framework: "iso27001",
+    title: "Classification of information",
+    requirement:
+      "Information shall be classified according to the information security needs of the organization based on confidentiality, integrity, availability and relevant interested party requirements.",
+    category: "Organizational",
+    collector: "github.codeowners",
+    manual: false,
+    guidance:
+      "Classification in a repository reduces to which paths are sensitive. CODEOWNERS is the mechanism that binds a sensitive path to an accountable owner.",
+  },
+  {
+    id: "A.5.16",
+    framework: "iso27001",
+    title: "Information security incident management planning",
+    requirement:
+      "The organization shall plan and establish information security incident management processes, including responsibilities, procedures and communication.",
+    category: "Organizational",
+    collector: "github.security_md",
+    manual: false,
+    guidance:
+      "The published half of incident management: a reporting channel and stated response expectations, both visible to an external reporter.",
+  },
+  {
+    id: "A.5.18",
+    framework: "iso27001",
+    title: "Access rights",
+    requirement:
+      "Access rights to information and information processing facilities shall be provisioned, reviewed, modified and removed in accordance with the organization's topic-specific policy on access control and rules on segregation of duties.",
+    category: "Organizational",
+    collector: "git.authorship",
+    manual: false,
+    guidance:
+      "Git history is the observable shadow of the access list, because anyone who could push appears as an author. Reviewer samples it to test whether access was provisioned to the right people.",
+  },
+  {
+    id: "A.5.19",
+    framework: "iso27001",
+    title: "Information security in supplier relationships",
+    requirement:
+      "Processes and procedures shall be defined and implemented to manage the information security risks associated with the use of supplier's products or services.",
+    category: "Organizational",
+    collector: "github.actions_permissions",
+    manual: false,
+    guidance:
+      "Third-party actions are the supplier relationship a software organisation actually has. Unrestricted action permissions mean an unreviewed supplier can execute with repository secrets.",
+  },
+  {
+    id: "A.5.20",
+    framework: "iso27001",
+    title: "Addressing information security within supplier agreements",
+    requirement:
+      "Relevant information security requirements shall be established and agreed with each supplier based on the type of supplier relationship.",
+    category: "Organizational",
+    collector: "github.actions_permissions",
+    manual: false,
+    guidance:
+      "Requirements are expressed as technical constraints in workflow configuration. Restricting which actions may run is a supplier requirement enforced in code.",
+  },
+  {
+    id: "A.5.22",
+    framework: "iso27001",
+    title: "Monitoring, review and change management of supplier services",
+    requirement:
+      "The organization shall regularly monitor, review, evaluate and manage change in supplier information security practices and service delivery.",
+    category: "Organizational",
+    collector: "github.advisories",
+    manual: false,
+    guidance:
+      "Ongoing review of the supply chain includes the actions your workflows depend on. Unpinned references move; a review record does not.",
+  },
+  {
+    id: "A.5.23",
+    framework: "iso27001",
+    title: "Information security for use of cloud services",
+    requirement:
+      "Processes for acquisition, use, management and exit from cloud services shall be established in accordance with the organization's information security requirements.",
+    category: "Organizational",
+    collector: "github.env_protection",
+    manual: false,
+    guidance:
+      "For a GitHub-hosted project the cloud boundary is the repository. Environment protection rules define the separation between who can merge and who can deploy.",
+  },
+  {
+    id: "A.5.25",
+    framework: "iso27001",
+    title: "Assessment and decision on information security events",
+    requirement:
+      "The organization shall assess information security events and decide if they are to be categorized as information security incidents.",
+    category: "Organizational",
+    collector: "github.advisories",
+    manual: false,
+    guidance:
+      "A triage decision recorded against each event. Advisories that were closed carry a disposition; those still open do not.",
+  },
+  {
+    id: "A.5.26",
+    framework: "iso27001",
+    title: "Response to information security incidents",
+    requirement:
+      "Information security incidents shall be responded to in accordance with the documented procedures.",
+    category: "Organizational",
+    collector: "github.security_md",
+    manual: false,
+    guidance:
+      "A reporter needs to know what happens after they send a report. A published commitment with a timeframe is the observable half of the response procedure.",
+  },
+  {
+    id: "A.5.27",
+    framework: "iso27001",
+    title: "Learning from information security incidents",
+    requirement:
+      "Knowledge gained from information security incidents shall be used to strengthen and improve the information security controls.",
+    category: "Organizational",
+    collector: "github.dependabot",
+    manual: false,
+    guidance:
+      "Learning is visible as a changed control. An organization that has triaged advisories and enabled scanning has demonstrably acted on what it learned.",
+  },
+  {
+    id: "A.5.28",
+    framework: "iso27001",
+    title: "Collection of evidence",
+    requirement:
+      "The organization shall establish and implement procedures for the identification, collection, acquisition and preservation of evidence related to information security events.",
+    category: "Organizational",
+    collector: "github.ci_runs",
+    manual: false,
+    guidance:
+      "Evidence is the run history. Reviewer samples a CI run and expects timestamps, actor and conclusion to survive long enough to be produced on request.",
+  },
+  {
+    id: "A.5.31",
+    framework: "iso27001",
+    title: "Legal, statutory, regulatory and contractual requirements",
+    requirement:
+      "Legal, statutory, regulatory and contractual requirements relevant to information security and the organization's approach to meet these requirements shall be identified, documented and kept up to date.",
+    category: "Organizational",
+    collector: "github.governance",
+    manual: false,
+    guidance:
+      "The licence file is the baseline record of the terms the organization has agreed to. Absence of one means terms are unstated.",
+  },
+  {
+    id: "A.5.33",
+    framework: "iso27001",
+    title: "Protection of records",
+    requirement:
+      "Records shall be protected from loss, destruction, falsification, unauthorized access and unauthorized release.",
+    category: "Organizational",
+    collector: "github.ci_runs",
+    manual: false,
+    guidance:
+      "Audit records in a software system are the CI run log and the release trail. Their protection is the retention and immutability you configure on the platform.",
+  },
+  {
+    id: "A.5.36",
+    framework: "iso27001",
+    title: "Compliance with policies, rules and standards for information security",
+    requirement:
+      "Compliance with the organization's information security policy, topic-specific policies, rules and standards shall be regularly reviewed.",
+    category: "Organizational",
+    collector: "github.ci_runs",
+    manual: false,
+    guidance:
+      "Compliance review is continuous checking. A required check that passes on every merge is the reviewed, enforced state of the policy-as-code.",
+  },
+  {
+    id: "A.5.37",
+    framework: "iso27001",
+    title: "Documented operating procedures",
+    requirement:
+      "Operating procedures for information processing facilities shall be documented and made available to personnel who need them.",
+    category: "Organizational",
+    collector: "github.governance",
+    manual: false,
+    guidance:
+      "Contribution and security policies are the documented procedures a contributor can actually follow.",
+  },
+  {
+    id: "A.6.3",
+    framework: "iso27001",
+    title: "Information security awareness, education and training",
+    requirement:
+      "Personnel of the organization and relevant interested parties shall receive appropriate information security awareness, education and training and regular updates of the organization's information security policy.",
+    category: "People",
+    collector: "manual",
+    manual: true,
+    guidance:
+      "Requires training records and awareness attestations. Not derivable from source code. Commit signing policy and a security policy are supporting artefacts, not evidence of training.",
+  },
+  {
+    id: "A.6.8",
+    framework: "iso27001",
+    title: "Information security event reporting",
+    requirement:
+      "The organization shall provide a means for personnel and interested parties to report observed or suspected information security events through appropriate channels.",
+    category: "People",
+    collector: "github.security_md",
+    manual: false,
+    guidance:
+      "The channel must exist and be reachable by someone outside the team. A private reporting address in a published policy is the artefact.",
+  },
+  {
+    id: "A.8.10",
+    framework: "iso27001",
+    title: "Information deletion",
+    requirement:
+      "Information stored in information processing facilities shall be deleted when no longer required.",
+    category: "Technological",
+    collector: "git.secret_history",
+    manual: false,
+    guidance:
+      "Deletion from the tip of a branch is not deletion from history. Reviewer expects to know whether removal was accompanied by rotation.",
+  },
+  {
+    id: "A.8.21",
+    framework: "iso27001",
+    title: "Security of network services",
+    requirement:
+      "Security mechanisms, service levels and service requirements of network services shall be identified, implemented and monitored.",
+    category: "Technological",
+    collector: "github.branch_protection",
+    manual: false,
+    guidance:
+      "In a repository the network service is the hosting platform's API surface. The controls protecting it are the branch and permission rules that govern write access.",
+  },
+  {
+    id: "A.8.22",
+    framework: "iso27001",
+    title: "Segregation of networks",
+    requirement:
+      "Groups of information services, users and information systems shall be segregated in the organization's networks.",
+    category: "Technological",
+    collector: "github.env_protection",
+    manual: false,
+    guidance:
+      "Segregation here means separating who may change code from who may deploy. A protected environment with required reviewers is the boundary.",
+  },
+  {
+    id: "A.8.26",
+    framework: "iso27001",
+    title: "Application security requirements",
+    requirement:
+      "Information security requirements shall be identified, specified and approved when developing or acquiring applications.",
+    category: "Technological",
+    collector: "github.ci_workflows",
+    manual: false,
+    guidance:
+      "Requirements become real when a pipeline step fails a build that violates them. Reviewer looks for enforcement, not documentation.",
+  },
+  {
+    id: "A.8.27",
+    framework: "iso27001",
+    title: "Secure system architecture and engineering principles",
+    requirement:
+      "Principles for engineering secure systems shall be established, documented, maintained and applied to any information system development activities.",
+    category: "Technological",
+    collector: "github.branch_protection",
+    manual: false,
+    guidance:
+      "Architectural principles are expressed as structural constraints. Enforced branch protection is a principle that cannot be bypassed; a wiki page is not.",
+  },
+  {
+    id: "A.8.30",
+    framework: "iso27001",
+    title: "Outsourced development",
+    requirement:
+      "The organization shall direct, monitor and review the activities related to outsourced system development.",
+    category: "Technological",
+    collector: "github.actions_permissions",
+    manual: false,
+    guidance:
+      "External contributions and third-party actions are outsourced development in the operational sense. Reviewer checks both are reviewed before they can execute.",
+  },
+  {
+    id: "A.8.31",
+    framework: "iso27001",
+    title: "Separation of development, test and production environments",
+    requirement:
+      "Development, testing and production environments shall be separated and secured.",
+    category: "Technological",
+    collector: "github.env_protection",
+    manual: false,
+    guidance:
+      "The testable claim is that a production deployment requires an authorization a contributor cannot grant themselves. Environments with required reviewers demonstrate that.",
+  },
+  {
+    id: "A.8.33",
+    framework: "iso27001",
+    title: "Protection of test information",
+    requirement:
+      "Test information shall be appropriately selected, protected and managed.",
+    category: "Technological",
+    collector: "git.secret_history",
+    manual: false,
+    guidance:
+      "Test fixtures, examples and CI config are test information. Real credentials committed among them are the failure this control exists to catch.",
+  },
 ];

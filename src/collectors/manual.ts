@@ -51,6 +51,30 @@ const MANUAL_SPECS: Record<string, ManualSpec> = {
       "Operator declares physical security is covered by the hosting provider's attestation",
     reference: "provider attestation (for example AWS, Azure, GCP)",
   },
+  "CC3.3": {
+    key: "fraudRiskAssessed",
+    requirement:
+      "A documented fraud risk assessment, including how segregation of duties on merge rights is meant to prevent unauthorised code becoming a production change.",
+    satisfiedTitle:
+      "Operator declares a fraud risk assessment is documented and current",
+    reference: "fraud risk assessment, code of conduct, whistleblower policy",
+  },
+  "A.6.3": {
+    key: "trainingCompleted",
+    requirement:
+      "Records that personnel received information security awareness training, with dates and refresh cadence, plus evidence of policy acknowledgement.",
+    satisfiedTitle:
+      "Operator declares security awareness training is delivered and recorded",
+    reference: "training records, policy acknowledgements",
+  },
+  "A1.1": {
+    key: "capacityManaged",
+    requirement:
+      "A statement of current capacity against projected demand, and how shortfall is detected before it affects commitments made to customers.",
+    satisfiedTitle:
+      "Operator declares capacity is monitored against projected requirements",
+    reference: "capacity plan, load test results, provider commitments",
+  },
 };
 
 export const manualCollector: Collector = {

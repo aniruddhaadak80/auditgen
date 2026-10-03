@@ -11,11 +11,11 @@ npx auditgen audit
 ```
 
 ```
-aniruddhaadak80/promptfoo  2026-10-03T07:44:59.442Z
+aniruddhaadak80/promptfoo  2026-10-03T08:36:17.237Z
 
-1/17 controls satisfied  █░░░░░░░░░░░░░░░░░░░░░░░ 6%
-  1 partial · 10 gap · 5 need attestation
-  (8% of the 12 observable control(s); unattested controls are not free)
+9/72 controls satisfied  ███░░░░░░░░░░░░░░░░░░░░░ 13%
+  6 partial · 37 gap · 20 need attestation
+  (17% of the 52 observable control(s); unattested controls are not free)
 
 Needs work:
   GAP   CC2.2    Internal communication of objectives and responsibilities
@@ -48,8 +48,8 @@ These are design constraints, not limitations to work around.
 **It will not report compliance it cannot see.** GitHub's API exposes no endpoint
 for whether an organisation enforces MFA. Rather than infer a pass from an
 unrelated signal, that control is reported as *needs attestation* with the exact
-menu path to verify it. Across the 34 controls in this build, 10 require an
-operator attestation by design.
+menu path to verify it. Of the 72 controls in this build, 7 require an operator
+attestation that no tool can make on your behalf.
 
 **A language model cannot change a status.** Status is computed from
 deterministic repository observation in `src/engine/evaluate.ts`. The model pass
@@ -103,10 +103,30 @@ auditgen doc system_description --period "1 Apr 2026 to 30 Jun 2026"
 auditgen doc statement_of_applicability
 
 # what is actually covered
-auditgen controls --framework iso27001
+auditgen controls
 
 # prove nobody edited the report
 auditgen verify auditgen-report.json
+
+# what changed since last quarter
+auditgen diff baseline.json report.json
+```
+
+`diff` exits `1` on a regression, so a control that silently degraded between
+audit periods fails the pipeline just like a fresh gap does.
+
+```console
+$ auditgen diff q3.json q4.json
+acme/widget   2026-09-30T00:00:00.000Z -> 2026-12-31T00:00:00.000Z
+
+4 improved · 1 regressed · 0 added · 0 removed · 67 unchanged
+
+Changed controls, regressions first:
+
+  WORSE  CC7.2    satisfied -> partial
+         Monitoring for anomalies indicative of malicious acts
+  better CC6.1    gap -> satisfied
+         Logical access security
 ```
 
 Exit codes: `0` no gaps, `1` gaps found, `2` error. The `1` makes it usable as a
@@ -163,19 +183,27 @@ less than a red one you can.
 
 ## Controls
 
-34 controls across two frameworks, each mapped to exactly one collector so a
+72 controls across two frameworks, each mapped to exactly one collector so a
 control can never silently end up with no evidence and look satisfied.
 
-| Framework | Controls | Source |
+| Framework | Controls | Coverage |
 | --- | --- | --- |
-| SOC 2 Trust Services Criteria | 17 | CC2.2 – CC9.2, A1.2 |
-| ISO/IEC 27001:2022 Annex A | 17 | A.5.15 – A.8.32 |
+| SOC 2 Trust Services Criteria | 28 | CC1.2 – CC9.2, A1.1 – A1.3 |
+| ISO/IEC 27001:2022 Annex A | 44 | A.5.1 – A.8.33 |
 
 Collectors read branch protection, `CODEOWNERS`, `SECURITY.md`, secret-scanning
 and push-protection status, Dependabot alerts and their dispositions, Actions
-workflows and permission scopes, environment protection rules, merged-PR review
-practice, releases, security advisories, commit signatures, and full-history
-secret scanning.
+workflows and permission scopes, **recent workflow run outcomes**, environment
+protection rules, merged-PR review practice, releases, security advisories,
+governance artefacts, commit signatures, **author identity concentration**, and
+full-history secret scanning.
+
+Two of these deserve a note. `github.ci_runs` tests **operating effectiveness**:
+every other collector answers "is this configured", and this one answers "did it
+ever run, and does it keep passing", because a required check that has never
+executed is an aspiration rather than a control. `git.authorship` infers the
+access list from the author set, since anyone who could push necessarily appears
+in history, which makes an unexpectedly broad author set a provisioning finding.
 
 ```bash
 auditgen controls
@@ -241,16 +269,24 @@ npm run build
 
 - **Not an attestation.** Readiness evidence, not a SOC 2 report or ISO 27001
   certificate.
-- **Partial coverage.** 34 of the ~93 ISO 27001 Annex A controls, weighted
-  toward what a repository can actually prove. Organisational and physical
-  controls are listed as needing attestation.
+- **Partial Annex A coverage.** 44 of 93 controls, weighted toward what a
+  repository can actually prove. Organisational, physical and people controls
+  are listed as needing attestation rather than omitted.
 - **GitHub only.** No GitLab, Bitbucket or Azure DevOps.
 - **Branch protection needs `administration:read`.** Without it, controls that
   depend on it are reported as unconfirmed rather than failed. This is
   deliberate: "cannot see the rule" and "the rule is absent" are different
   findings.
 - **Secret scanning covers committed history,** not the working tree or CI logs.
+- **Preflight SOC 2 is not a full examination.** Covering the Security criterion
+  is not sufficient for a SOC 2 report; availability, confidentiality and
+  processing integrity are assessed separately against your commitments.
 
-## License
+## Project status
+
+`0.1.x`, pre-1.0. The report schema and CLI flags may change. `SECURITY.md` has
+the supported-versions table.
+
+## Licence
 
 MIT

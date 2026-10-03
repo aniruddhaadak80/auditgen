@@ -383,8 +383,124 @@ export const secretHistoryCollector: Collector = {
   },
 };
 
+// ---------------------------------------------------------------------------
+// git.authorship  ->  CC6.2, A.5.18, A.8.4
+// ---------------------------------------------------------------------------
+
+/**
+ * Access rights, inferred from who has actually been able to write.
+ *
+ * There is no API that lists a repository's writers. But a push-access account
+ * necessarily has an author identity in the history, so the author set is the
+ * observable shadow of the access list. Useful to an auditor: an unexpectedly
+ * broad author set is a provisioning finding, and author identities that do not
+ * correspond to named people are a shared-account problem.
+ */
+export const authorshipCollector: Collector = {
+  name: "git.authorship",
+  async run(ctx) {
+    if (!ctx.localPath || !(await isGitRepo(ctx.localPath))) {
+      return one({
+        title: "Commit authorship is not available locally",
+        passed: false,
+        source: ctx.localPath ?? "(no local path)",
+        details: { reason: "not a git repository" },
+        unverifiable: true,
+        gaps: [
+          "Clone the repository with full history so author identities can be enumerated.",
+        ],
+      });
+    }
+
+    let log: string;
+    try {
+      log = (
+        await git(ctx.localPath, [
+          "log",
+          "--no-merges",
+          "--pretty=format:%an%x1f%ae",
+          "--max-count=3000",
+        ])
+      ).stdout;
+    } catch (err) {
+      return one({
+        title: "Commit authorship could not be read",
+        passed: false,
+        source: ctx.localPath,
+        details: { error: String(err).slice(0, 200) },
+        unverifiable: true,
+        gaps: ["Ensure the clone includes full history."],
+      });
+    }
+
+    const counts = new Map<string, number>();
+    let total = 0;
+    for (const line of log.split("\n")) {
+      const [name, email] = line.split("\x1f");
+      if (!name || !email) continue;
+      total++;
+      const key = `${name} <${email}>`;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+
+    if (total === 0) {
+      return one({
+        title: "No commits available to attribute",
+        passed: false,
+        source: ctx.localPath,
+        details: { commits: 0 },
+        gaps: ["Nothing to attribute."],
+      });
+    }
+
+    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    const identities = sorted.length;
+    const topShare = (sorted[0]?.[1] ?? 0) / total;
+
+    // One identity doing all the work means no segregation of duties and no way
+    // to attribute a change to a person.
+    const singleAuthor = identities === 1;
+    // Automations legitimately author commits (renovate, dependabot, github-actions).
+    const looksAutomated = sorted.every(([id]) =>
+      /\[bot\]|bot@|renovate|dependabot|github-actions|actions\[bot\]/i.test(id),
+    );
+
+    const gaps: string[] = [];
+    if (singleAuthor && !looksAutomated) {
+      gaps.push(
+        `All ${total} commits share a single identity. Changes cannot be attributed to an individual, which is both an access-control weakness and an audit finding.`,
+      );
+    }
+    if (topShare > 0.9 && identities > 1) {
+      gaps.push(
+        `One identity authored ${(topShare * 100).toFixed(0)}% of commits (${sorted[0]?.[0]}). Confirm this reflects intentional ownership rather than a shared account.`,
+      );
+    }
+    if (looksAutomated) {
+      gaps.push(
+        "Every commit is authored by an automated account. Record who operates these accounts, or changes are not attributable to a person.",
+      );
+    }
+
+    return one({
+      title: `${identities} author identit${identities === 1 ? "y" : "ies"} across ${total} commit(s)`,
+      passed: !singleAuthor && !looksAutomated,
+      source: `${ctx.localPath} (git log --pretty=%an <%ae>)`,
+      details: {
+        commitsSampled: total,
+        distinctIdentities: identities,
+        topIdentityShare: Number(topShare.toFixed(4)),
+        allAutomated: looksAutomated,
+        authors: sorted.slice(0, 40).map(([id, n]) => ({ identity: id, commits: n })),
+      },
+      gaps,
+    });
+  },
+};
+
 export const GIT_COLLECTORS: Collector[] = [
   commitSignaturesCollector,
+  authorshipCollector,
   secretHistoryCollector,
 ];
 
