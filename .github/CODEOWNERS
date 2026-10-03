@@ -1,0 +1,32 @@
+# Ownership is the enforceable half of access control. A CODEOWNERS file only
+# takes effect once branch protection requires a review from these owners.
+#
+# Once "Require review from Code Owners" is enabled on main, the paths below
+# cannot merge without @aniruddhaadak80 approving.
+
+# Default owner for everything not matched more specifically below.
+/*                                   @aniruddhaadak80
+
+# Security-relevant configuration. A change here alters what the control
+# environment is, so it gets an explicit owner rather than the default.
+/.github/                           @aniruddhaadak80
+/.github/workflows/                 @aniruddhaadak80
+/.github/dependabot.yml             @aniruddhaadak80
+
+# The collectors decide what counts as satisfied evidence, so a change to them
+# is a change to what auditgen is capable of asserting. Treat as sensitive.
+/src/engine/                        @aniruddhaadak80
+/src/collectors/                    @aniruddhaadak80
+
+# The hash chain and the report schema. Editing either can invalidate evidence
+# other people have already relied on.
+/src/util/hash.ts                   @aniruddhaadak80
+/src/types.ts                       @aniruddhaadak80
+
+# Dependency manifests pin what executes in CI.
+/package.json                       @aniruddhaadak80
+/package-lock.json                  @aniruddhaadak80
+
+# Published attestations. A false attestation is the highest-severity defect
+# this project can ship, because it produces confident non-compliance.
+/schema/                            @aniruddhaadak80
