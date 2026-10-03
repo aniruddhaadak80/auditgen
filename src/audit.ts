@@ -15,11 +15,50 @@ import type { CollectorContext } from "./collectors/types.js";
 import { GitHubClient, resolveToken } from "./util/github.js";
 import { evaluate, summarize } from "./engine/evaluate.js";
 import { enrichFindings } from "./engine/judge.js";
+import { parseGitHubRemote, readOriginRemote } from "./config.js";
 
 export interface AuditRun {
   report: Report;
   /** Non-fatal notes about the AI narrative pass, not part of the report. */
   judgeNote?: string;
+}
+
+/**
+ * Guards against the most damaging failure mode available to this tool:
+ * reporting that the wrong repository is clean.
+ *
+ * A caller may pass owner/repo explicitly while standing in some unrelated
+ * checkout. Running the local git collectors in that case would produce a
+ * confident "no committed credentials found" about a repository that was never
+ * examined. If the local directory's origin does not match the target, the local
+ * path is discarded rather than silently scanned.
+ */
+export function reconcileLocalPath(
+  target: AuditOptions["target"],
+): { localPath?: string; mismatch?: string } {
+  const { localPath, owner, repo } = target;
+  if (!localPath) return {};
+  const remote = readOriginRemote(localPath);
+  if (!remote) {
+    return {
+      mismatch: `Local path ${localPath} has no origin remote, so local history checks were skipped rather than run against an unverified directory.`,
+    };
+  }
+  const parsed = parseGitHubRemote(remote);
+  if (!parsed) {
+    return {
+      mismatch: `Origin "${remote}" is not a GitHub remote, so local history checks were skipped for ${owner}/${repo}.`,
+    };
+  }
+  if (
+    parsed.owner.toLowerCase() !== owner.toLowerCase() ||
+    parsed.repo.toLowerCase() !== repo.toLowerCase()
+  ) {
+    return {
+      mismatch: `Local checkout is ${parsed.owner}/${parsed.repo} but the audit target is ${owner}/${repo}. Local history checks were skipped to avoid reporting on the wrong repository.`,
+    };
+  }
+  return { localPath };
 }
 
 /**
@@ -71,11 +110,14 @@ export async function runAudit(
     tree = await buildTreeIndex(gh, defaultBranch, (m) => warnings.push(m));
   }
 
+  const { localPath, mismatch } = reconcileLocalPath(options.target);
+  if (mismatch) warnings.push(mismatch);
+
   const ctx: CollectorContext = {
     gh,
-    target: options.target,
+    target: { ...options.target, ...(localPath ? { localPath } : {}) },
     defaultBranch,
-    ...(options.target.localPath ? { localPath: options.target.localPath } : {}),
+    ...(localPath ? { localPath } : {}),
     declarations: { ...config },
     warnings,
     offline,

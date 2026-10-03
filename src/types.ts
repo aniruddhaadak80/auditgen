@@ -155,10 +155,18 @@ export interface Report {
     gap: number;
     manual: number;
     notApplicable: number;
-    /** Share of controls at satisfied, 0..1. Excludes manual and N/A. */
-    coverage: number;
-    /** Share of deterministic (non-manual) controls at satisfied, 0..1. */
-    automatedCoverage: number;
+    /**
+     * Satisfied share of every evaluated control, 0..1. This is the honest
+     * headline figure: a control nobody could observe counts against you.
+     */
+    overall: number;
+    /**
+     * Satisfied share of controls that were actually observable, 0..1. Excludes
+     * manual and not-applicable. Useful for tracking progress on the controls in
+     * a team's reach, but never quote it without `overall` beside it, because a
+     * repository where everything is unobservable scores 100% here.
+     */
+    observedCoverage: number;
   };
   /** Chain head over all evidence in report order. */
   evidenceRoot: string;

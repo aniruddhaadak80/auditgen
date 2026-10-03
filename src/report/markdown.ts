@@ -64,16 +64,20 @@ export function renderMarkdown(report: Report): string {
   out.push(`| Partial | ${summary.partial} |`);
   out.push(`| Gap | ${summary.gap} |`);
   out.push(`| Needs attestation | ${summary.manual} |`);
-  out.push(`| Coverage (observed) | ${pct(summary.coverage)} |`);
+  out.push(`| **Satisfied overall** | **${pct(summary.overall)}** |`);
   out.push(
-    `| Coverage (excluding attestations) | ${pct(summary.automatedCoverage)} |`,
+    `| Satisfied among observable controls | ${pct(summary.observedCoverage)} |`,
   );
   out.push("");
   out.push("```");
-  out.push(
-    `${coverageBar(summary.coverage)} ${pct(summary.coverage)} observed coverage`,
-  );
+  out.push(`${coverageBar(summary.overall)} ${pct(summary.overall)} of all evaluated controls satisfied`);
   out.push("```");
+  out.push("");
+  out.push(
+    `\`overall\` counts a control nobody could observe against you, because an auditor will. ` +
+      `\`observedCoverage\` excludes the ${summary.manual} control(s) awaiting attestation; ` +
+      "quote it only alongside the overall figure.",
+  );
   out.push("");
 
   // ---- Per framework ----------------------------------------------------
@@ -208,11 +212,16 @@ export function renderTerminal(report: Report): string {
   lines.push(`${repo}  ${report.generatedAt}`);
   lines.push("");
   lines.push(
-    `${coverageBar(summary.coverage)}  ${pct(summary.coverage)} observed coverage`,
+    `${summary.satisfied}/${summary.total} controls satisfied  ${coverageBar(summary.overall)} ${pct(summary.overall)}`,
   );
   lines.push(
-    `  ${summary.satisfied} satisfied · ${summary.partial} partial · ${summary.gap} gap · ${summary.manual} need attestation`,
+    `  ${summary.partial} partial · ${summary.gap} gap · ${summary.manual} need attestation`,
   );
+  if (summary.manual > 0) {
+    lines.push(
+      `  (${pct(summary.observedCoverage)} of the ${summary.total - summary.manual - summary.notApplicable} observable control(s); unattested controls are not free)`,
+    );
+  }
   lines.push("");
 
   const problems = report.findings

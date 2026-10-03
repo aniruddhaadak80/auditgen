@@ -251,8 +251,11 @@ export class AuditgenMcpServer {
           );
         return [
           `Audit of ${report.target.owner}/${report.target.repo} generated ${report.generatedAt}.`,
-          `${report.summary.satisfied} of ${report.summary.total} controls satisfied (${(report.summary.coverage * 100).toFixed(0)}% observed coverage).`,
+          `${report.summary.satisfied} of ${report.summary.total} controls satisfied (${(report.summary.overall * 100).toFixed(0)}% overall).`,
           `${report.summary.gap} gaps, ${report.summary.partial} partial, ${report.summary.manual} awaiting operator attestation.`,
+          report.summary.manual > 0
+            ? `Of the ${report.summary.total - report.summary.manual - report.summary.notApplicable} observable control(s), ${(report.summary.observedCoverage * 100).toFixed(0)}% are satisfied. Unattested controls are not free.`
+            : "Every evaluated control was observable.",
           "",
           "Highest priority findings:",
           ...(worst.length ? worst : ["- none"]),
@@ -386,6 +389,15 @@ export function serveStdio(options: ServerOptions): void {
   const server = new AuditgenMcpServer(options);
   const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
 
+  // A full audit can take many seconds. Exiting the moment stdin closes would
+  // kill every in-flight tool call, so shutdown waits for outstanding work.
+  let inFlight = 0;
+  let closing = false;
+
+  const maybeExit = () => {
+    if (closing && inFlight === 0) process.exit(0);
+  };
+
   rl.on("line", (line) => {
     const trimmed = line.trim();
     if (!trimmed) return;
@@ -402,6 +414,8 @@ export function serveStdio(options: ServerOptions): void {
       );
       return;
     }
+
+    inFlight++;
     void server
       .handle(req)
       .then((res) => {
@@ -418,10 +432,17 @@ export function serveStdio(options: ServerOptions): void {
             },
           }) + "\n",
         );
+      })
+      .finally(() => {
+        inFlight--;
+        maybeExit();
       });
   });
 
-  rl.on("close", () => process.exit(0));
+  rl.on("close", () => {
+    closing = true;
+    maybeExit();
+  });
 }
 
 export { renderMarkdown };

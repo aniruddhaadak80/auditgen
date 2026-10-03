@@ -36,7 +36,7 @@ jobs:
       - name: Run auditgen against this repository
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node dist/cli.js audit --owner ${{ github.repository_owner }} --repo ${{ github.event.repository.name }} --format markdown --out auditgen-report.md
+        run: node dist/cli.js audit "${{ github.repository }}" --framework soc2,iso27001 --no-ai --format markdown --out auditgen-report.md
       - uses: actions/upload-artifact@v4
         with:
           name: auditgen-report

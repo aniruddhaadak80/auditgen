@@ -199,7 +199,7 @@ describe("summarize", () => {
     aiGenerated: false,
   });
 
-  it("excludes manual controls from coverage", () => {
+  it("counts unattested controls against the overall figure", () => {
     const s = summarize([
       mk("satisfied"),
       mk("gap"),
@@ -207,13 +207,16 @@ describe("summarize", () => {
     ] as never);
     assert.equal(s.total, 3);
     assert.equal(s.manual, 1);
-    assert.equal(s.coverage, 0.5);
+    // One of three is satisfied overall, even though both observable controls
+    // are accounted for: a control nobody can observe is not a free pass.
+    assert.equal(s.overall, 0.3333);
+    assert.equal(s.observedCoverage, 0.5);
   });
 
-  it("reports zero coverage rather than dividing by zero", () => {
+  it("reports zero rather than dividing by zero", () => {
     const s = summarize([mk("manual", true)] as never);
-    assert.equal(s.coverage, 0);
-    assert.equal(s.automatedCoverage, 0);
+    assert.equal(s.overall, 0);
+    assert.equal(s.observedCoverage, 0);
   });
 
   it("counts every bucket", () => {

@@ -321,10 +321,18 @@ export const secretScanningCollector: Collector = {
 
     const passed = scanning && pushProtection && (openAlerts ?? 0) === 0;
 
+    // The title must not read as a pass when the control fails, or the report
+    // contradicts itself in the same block.
+    const title = !scanning
+      ? "Secret scanning is not enabled"
+      : !pushProtection
+        ? "Secret scanning is enabled but push protection is not"
+        : (openAlerts ?? 0) > 0
+          ? `Secret scanning and push protection enabled, with ${openAlerts} unresolved alert(s)`
+          : "Secret scanning and push protection enabled with no open alerts";
+
     return one({
-      title: scanning
-        ? `Secret scanning enabled${pushProtection ? " with push protection" : ", push protection disabled"}`
-        : "Secret scanning is not enabled",
+      title,
       passed,
       source: repoUrl(ctx, "/settings/security_analysis"),
       details: {
@@ -676,6 +684,7 @@ export const prReviewCollector: Collector = {
     if (ctx.offline) return OFFLINE(this.name, ctx);
 
     const bp = await loadBranchProtection(ctx);
+    const bpReadable = Boolean(bp);
     const requiredCount =
       bp?.required_pull_request_reviews?.required_approving_review_count ?? 0;
 
@@ -709,7 +718,14 @@ export const prReviewCollector: Collector = {
       releases.ok && Array.isArray(releases.data) ? releases.data.length : 0;
 
     const gaps: string[] = [];
-    if (requiredCount === 0) {
+    if (!bpReadable) {
+      // Without read access to protection settings, "no reviews required" cannot
+      // be distinguished from "cannot see the rules". Report the uncertainty
+      // instead of asserting a failure that may not exist.
+      gaps.push(
+        "Branch protection settings could not be read with this token, so whether approving reviews are required is unconfirmed. Re-run with administration:read to verify.",
+      );
+    } else if (requiredCount === 0) {
       gaps.push(
         "Branch protection does not require approving reviews, so a change can merge on a single account's authority. This is the most commonly cited SOC 2 gap.",
       );
@@ -731,18 +747,23 @@ export const prReviewCollector: Collector = {
     }
 
     const passed =
+      bpReadable &&
       requiredCount > 0 &&
       (merged === 0 || withApprovalByOther > 0) &&
       releaseCount > 0;
 
+    const title = !bpReadable
+      ? `Review requirement could not be read; ${releaseCount} release(s) recorded`
+      : requiredCount > 0
+        ? `Merges require ${requiredCount} approving review(s); ${releaseCount} release(s) recorded`
+        : "Merges require no approving review";
+
     return one({
-      title:
-        requiredCount > 0
-          ? `Merges require ${requiredCount} approving review(s); ${releaseCount} release(s) recorded`
-          : "Merges require no approving review",
+      title,
       passed,
       source: repoUrl(ctx, "/pulls?q=is%3Apr+is%3Amerged"),
       details: {
+        branchProtectionReadable: bpReadable,
         requiredApprovingReviewCount: requiredCount,
         dismissStaleReviews: Boolean(
           bp?.required_pull_request_reviews?.dismiss_stale_reviews,
@@ -909,9 +930,13 @@ export const actionsPermissionsCollector: Collector = {
 
     return one({
       title:
-        unpinnedThirdParty.length === 0
-          ? "All third-party actions are pinned to a commit sha"
-          : `${unpinnedThirdParty.length} third-party action(s) referenced by a mutable tag`,
+        allowed !== "selected"
+          ? `Workflow actions are not restricted${allowed === "all" ? " (all actions permitted)" : ""}`
+          : unpinnedThirdParty.length > 0
+            ? `${unpinnedThirdParty.length} third-party action(s) referenced by a mutable tag`
+            : thirdParty.length === 0
+              ? "No third-party actions referenced; workflow actions are restricted"
+              : `All ${thirdParty.length} third-party action references are pinned to a commit sha`,
       passed,
       source: repoUrl(ctx, "/settings/actions"),
       details: {

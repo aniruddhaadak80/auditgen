@@ -172,8 +172,8 @@ export function summarize(findings: Finding[]): {
   gap: number;
   manual: number;
   notApplicable: number;
-  coverage: number;
-  automatedCoverage: number;
+  overall: number;
+  observedCoverage: number;
 } {
   const count = (s: ControlStatus) =>
     findings.filter((f) => f.status === s).length;
@@ -185,14 +185,7 @@ export function summarize(findings: Finding[]): {
   const manual = count("manual");
   const notApplicable = count("not_applicable");
 
-  const inScope = total - manual - notApplicable;
-  const automatedInScope = inScope;
-  const automatedSatisfied = findings.filter(
-    (f) =>
-      f.status === "satisfied" &&
-      !f.control.manual &&
-      !f.evidence.some((e) => (e.details as Record<string, unknown>).attestation === "operator-declared"),
-  ).length;
+  const observable = total - manual - notApplicable;
 
   return {
     total,
@@ -201,12 +194,9 @@ export function summarize(findings: Finding[]): {
     gap,
     manual,
     notApplicable,
-    coverage:
-      inScope > 0 ? Number((satisfied / inScope).toFixed(4)) : 0,
-    automatedCoverage:
-      automatedInScope > 0
-        ? Number((automatedSatisfied / automatedInScope).toFixed(4))
-        : 0,
+    overall: total > 0 ? Number((satisfied / total).toFixed(4)) : 0,
+    observedCoverage:
+      observable > 0 ? Number((satisfied / observable).toFixed(4)) : 0,
   };
 }
 

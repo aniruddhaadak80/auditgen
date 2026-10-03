@@ -149,8 +149,8 @@ Examples
   process.exit(0);
 }
 
-function resolveTargetArg(args: Args, cwd: string) {
-  const explicit = args.positional[0];
+function resolveTargetArg(args: Args, cwd: string, index = 0) {
+  const explicit = args.positional[index];
   if (explicit) {
     const { owner, repo } = parseRepoSpec(explicit);
     return { owner, repo, localPath: cwd };
@@ -226,7 +226,8 @@ async function commandDoc(args: Args): Promise<number> {
     ? loadConfigFile(resolve(cwd, configPath))
     : loadConfig(cwd);
 
-  const target = resolveTargetArg(args, cwd);
+  // positional[0] is the document type, so the repository starts at index 1.
+  const target = resolveTargetArg(args, cwd, 1);
   const frameworks: Framework[] =
     type === "system_description" ? ["soc2"] : ["iso27001"];
 
@@ -354,25 +355,33 @@ function commandInit(): number {
   return 0;
 }
 
-function commandServe(args: Args): never {
+function commandServe(args: Args): void {
   const cwd = process.cwd();
   const positional = args.positional[0];
   const repo =
     positional ??
     process.env.AUDITGEN_REPO ??
-    process.env.GITHUB_REPOSITITY ??
+    process.env.GITHUB_REPOSITORY ??
     (() => {
       const t = resolveTarget(cwd);
       return t ? `${t.owner}/${t.repo}` : undefined;
     })();
 
+  if (!repo && !resolveTarget(cwd)) {
+    fail(
+      "No repository for the server. Pass owner/repo or set AUDITGEN_REPO.",
+    );
+  }
+
+  // serveStdio registers handlers and returns; the readline interface keeps the
+  // process alive until stdin closes. main() returns early for this command so
+  // that nothing calls process.exit and terminates the server.
   serveStdio({
     cwd,
     ...(repo ? { repo } : {}),
     frameworks: parseFrameworks(flagString(args, "framework")) ?? ["soc2", "iso27001"],
     noAi: flagBool(args, "no-ai"),
   });
-  process.exit(0);
 }
 
 // ---------------------------------------------------------------------------
@@ -407,7 +416,9 @@ async function main(): Promise<void> {
       break;
     case "serve":
       commandServe(args);
-      break;
+      // The stdio server owns the process from here. Returning without exiting
+      // keeps the event loop alive until stdin closes.
+      return;
     default:
       process.stderr.write(
         `auditgen: unknown command "${args.command}". Run \`auditgen --help\`.\n`,
