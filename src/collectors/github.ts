@@ -243,7 +243,10 @@ export const twoFactorCollector: Collector = {
         source: "auditgen.json#/twoFactorEnforced",
         details: { declaredBy: "operator", org: ctx.declarations.organizationName },
         declared: true,
-        gaps: [
+        // Advisory, not a shortfall. A remark in `gaps` reads as an unmet
+        // requirement and downgrades CC6.1 and A.8.5 to partial, exactly as
+        // manual.ts keeps it in `notes` for the operator-attested path.
+        notes: [
           "This assertion is attested, not observed. Confirm it in Settings > Authentication security and attach the screenshot to your auditor pack.",
         ],
       });
