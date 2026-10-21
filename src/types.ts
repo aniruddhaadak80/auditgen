@@ -126,6 +126,12 @@ export interface Declarations {
   hostingEnvironment?: string;
   /** Trust services criteria in scope. */
   trustServicesCriteria?: string[];
+  /**
+   * Websites to check for published policies: security.txt, privacy notice,
+   * status page, trust centre, subprocessor list. Repository metadata is used as
+   * a fallback. Every URL is treated as untrusted input.
+   */
+  websiteUrls?: string[];
 }
 
 export interface AuditOptions {
