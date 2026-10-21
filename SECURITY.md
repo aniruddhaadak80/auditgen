@@ -52,6 +52,53 @@ Reports in this order are prioritised highest:
 Lower priority: denial of service via a hostile repository, and crashes on
 malformed API responses.
 
+## URL fetching
+
+`web.policy_publication` fetches URLs derived from a repository's `homepage`
+field or from `websiteUrls` in `auditgen.json`. **Both are attacker-controllable**:
+anyone can set a homepage on a repository they control. auditgen usually runs in
+CI, often on a cloud runner holding instance credentials, which makes this a
+server-side request forgery target with a credential at the end of it.
+
+The guard in `src/util/fetchSafe.ts` is therefore treated as security-critical
+and is expected to stay that way:
+
+- **Scheme allow-list.** Only `http` and `https`. No `file`, `gopher`, `data` or
+  `javascript`.
+- **No credentials in the authority**, so a URL cannot smuggle userinfo to a
+  host.
+- **DNS resolution, then every returned address checked.** A hostname with both a
+  public and a private A record is a DNS rebinding attempt, so one public address
+  does not excuse one that is not.
+- **All private, loopback, link-local, CGNAT, multicast and reserved ranges are
+  blocked**, including `169.254.169.254` cloud instance metadata, and including
+  IPv4-mapped and NAT64 IPv6 forms that could otherwise smuggle a v4 target past a
+  v6 check.
+- **Redirects are followed manually and re-validated at every hop.** Handing a
+  validated URL to `fetch` with automatic redirects would validate only the first.
+- **Unrecognised address forms fail closed.**
+- **10s timeout and a 512 KB response cap**, so a hostile endpoint cannot hang the
+  audit or exhaust memory.
+
+Rules for changes here:
+
+1. Do not relax a range check without a threat-model note explaining why.
+2. Any new fetch path must go through `safeFetch`, not global `fetch`.
+3. `isPrivateAddress` must return `true` for anything unrecognised.
+4. Redirects must be followed manually. If you add automatic redirect following
+   anywhere, that is a vulnerability.
+
+## Content is never treated as evidence
+
+`web.policy_publication` may only evidence that a document is **published**, never
+that a **claim** inside it is true. A trust-centre page containing the words
+"SOC 2 Type II" is a claim by whoever wrote the page. Auto-passing on page content
+would manufacture exactly the false assurance this tool exists to avoid.
+
+If you add a collector that reads web content, keep it to structural checks:
+does it exist, is it reachable, is it well-formed, is it fresh. Substantive
+claims are operator attestations and must go through `Declarations`.
+
 ## Out of scope
 
 - **Findings in the audited repository.** auditgen reports that a repository has
