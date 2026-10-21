@@ -12,8 +12,14 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      # Every action is pinned to a full commit SHA, never a tag. This
+      # repository's Actions policy sets sha_pinning_required, and a tag
+      # reference such as actions/checkout@v4 is rejected at workflow
+      # startup: GitHub creates the run but never starts a job, the run is
+      # recorded as startup_failure, and the pull request reports no checks
+      # at all. Pinning is what makes the workflow runnable here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
       - run: npm ci
@@ -25,19 +31,29 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
       - run: npm ci
       - run: npm run build
       - name: Run auditgen against this repository
+        # This step produces a report, it does not gate the build. `auditgen
+        # audit` writes the report file first and only then exits 1 when it
+        # finds gaps, which for this repository is the expected state and the
+        # reason the report exists. The step therefore has to be allowed to
+        # fail without failing the run; only the `verify` job above is a
+        # required status check.
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node dist/cli.js audit "${{ github.repository }}" --framework soc2,iso27001 --no-ai --format markdown --out auditgen-report.md
-      - uses: actions/upload-artifact@v4
+        run: |
+          node dist/cli.js audit "${{ github.repository }}" \
+            --framework soc2,iso27001 --no-ai \
+            --format markdown --out auditgen-report.md
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: auditgen-report
           path: auditgen-report.md
