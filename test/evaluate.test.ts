@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { evaluate, summarize } from "../src/engine/evaluate.js";
 import { getControl } from "../src/controls/index.js";
+import { twoFactorCollector } from "../src/collectors/github.js";
 import type { Control } from "../src/types.js";
 import type { CollectorContext, CollectorResult } from "../src/collectors/types.js";
 import { emptyTree } from "../src/collectors/index.js";
@@ -133,6 +134,31 @@ describe("evaluate status logic", () => {
       observedAt,
     });
     assert.equal(findings[0]!.status, "manual");
+  });
+});
+
+/**
+ * `github.two_factor` is not a manual control, but it takes the same operator
+ * attestation. It has to carry the advisory in `notes` for the same reason the
+ * manual path does: a remark in `gaps` reads as an unmet requirement.
+ */
+describe("operator attestation through a collector", () => {
+  it("reports CC6.1 satisfied when MFA is attested, with the advisory as a note", async () => {
+    const context = ctx({ twoFactorEnforced: true, organizationName: "Acme" });
+    const results = await twoFactorCollector.run(context);
+
+    const { findings } = evaluate({
+      controls: [getControl("CC6.1")!],
+      resultsByCollector: new Map([["github.two_factor", results]]),
+      ctx: context,
+      observedAt,
+    });
+
+    const finding = findings[0]!;
+    assert.deepEqual(finding.gaps, []);
+    assert.equal(finding.status, "satisfied");
+    assert.deepEqual(finding.remediation, []);
+    assert.match(finding.notes[0]!, /attested, not observed/);
   });
 });
 
