@@ -53,6 +53,11 @@
       "type": "string",
       "description": "Directory for generated documents."
     },
+    "websiteUrls": {
+      "type": "array",
+      "items": { "type": "string", "format": "uri" },
+      "description": "Websites checked for published policies: security.txt, privacy notice, terms, status page, trust centre, subprocessor list. Tried in order, falling through to the repository homepage and then owner.github.io. Every URL is validated against an SSRF guard: only http and https, no private or link-local address, no credentials in the authority, redirects re-validated per hop."
+    },
     "twoFactorEnforced": {
       "type": "boolean",
       "default": false,
