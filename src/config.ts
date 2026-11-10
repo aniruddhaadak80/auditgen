@@ -32,19 +32,75 @@ export function findConfigFile(startDir: string): string | undefined {
   }
 }
 
+/**
+ * Removes JSONC comments without touching string contents.
+ *
+ * A naive regular-expression strip corrupts every URL and date in the file,
+ * because both contain a double slash. This walks the text tracking whether it
+ * is inside a string literal, which is the only correct way to do it.
+ */
+export function stripJsonComments(input: string): string {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i]!;
+    const next = input[i + 1];
+
+    if (inString) {
+      out += ch;
+      if (escaped) escaped = false;
+      else if (ch === "\\") escaped = true;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = true;
+      out += ch;
+      continue;
+    }
+    if (ch === "/" && next === "/") {
+      while (i < input.length && input[i] !== "\n") i++;
+      out += "\n";
+      continue;
+    }
+    if (ch === "/" && next === "*") {
+      i += 2;
+      while (i < input.length && !(input[i] === "*" && input[i + 1] === "/")) {
+        if (input[i] === "\n") out += "\n";
+        i++;
+      }
+      i++; // land on the closing '*'
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
 export function loadConfigFile(path: string): AuditgenConfig {
   const raw = readFileSync(path, "utf8");
+  // Strip a UTF-8 BOM. Windows PowerShell 5.1 writes one by default for
+  // Set-Content and Out-File -Encoding utf8, and JSON.parse rejects U+FEFF, so a
+  // config written from the most common shell on Windows would fail to load.
+  const withoutBom = raw.charCodeAt(0) === 0xfeff ? raw.slice(1) : raw;
   const stripped = path.endsWith(".jsonc")
-    ? raw
-        .replace(/^\s*\/\/.*$/gm, "")
-        // Removes /* ... */ blocks that do not sit inside a string literal.
-        .replace(/\/\*[\s\S]*?\*\//g, "")
-    : raw;
-  const parsed = JSON.parse(stripped) as AuditgenConfig;
+    ? stripJsonComments(withoutBom)
+    : withoutBom;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(stripped);
+  } catch (err) {
+    throw new Error(
+      `${path}: invalid JSON. ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error(`${path}: expected a JSON object`);
   }
-  return parsed;
+  return parsed as AuditgenConfig;
 }
 
 export function loadDeclarations(startDir: string): {
