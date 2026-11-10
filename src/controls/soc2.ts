@@ -245,10 +245,10 @@ export const SOC2_CONTROLS: Control[] = [
     requirement:
       "The entity communicates, externally, information about the objectives and responsibilities for achieving its internal control objectives.",
     category: "Communication and Information",
-    collector: "github.security_md",
+    collector: "web.policy_publication",
     manual: false,
     guidance:
-      "External communication includes what a security researcher or customer is told. A published policy with a reporting channel is the observable artefact.",
+      "The externally published surface is the observable artefact: security.txt with a working contact, a privacy notice, a status page, a trust centre and a subprocessor list. A trust-centre page claiming a certification is your assertion, not verified here.",
   },
   {
     id: "CC3.3",
