@@ -149,6 +149,7 @@ CI gate today:
   "hostingEnvironment": "GitHub Enterprise Cloud, us-east-1, AWS EC2 t3.large",
   "dataCategories": ["customer PII", "billing records"],
   "trustServicesCriteria": ["Security (Common Criteria, CC1-CC9)"],
+  "websiteUrls": ["https://acme.example"],
   "twoFactorEnforced": true,
   "riskRegisterMaintained": false,
   "backupRecoveryTested": false,
@@ -180,6 +181,44 @@ A record was modified after the report was generated. Treat the report as untrus
 
 This is the feature most worth having. A green report you cannot prove is worth
 less than a red one you can.
+
+## Published policies
+
+Auditors ask for your `security.txt`, privacy notice, status page, trust centre
+and subprocessor list. None of them live in git, so `web.policy_publication`
+fetches them:
+
+```console
+$ node dist/cli.js audit acme/widget --only CC2.3
+PASS  security.txt published with 2 contact(s) and a valid expiry
+PASS  Privacy notice published at /privacy/
+FAIL  Terms of service not found
+FAIL  Public status page not found
+PASS  Trust centre published at /trust
+FAIL  Subprocessor list not found
+```
+
+It reads `websiteUrls` from `auditgen.json`, falling back to the repository
+`homepage` and then `owner.github.io`. Candidates are tried in order, so a stale
+homepage does not mask a live declared URL.
+
+**It only evidences that a document is published, never that a claim in it is
+true.** A trust-centre page containing the words "SOC 2 Type II" is a claim by
+whoever wrote the page. Anyone can put text on a page, so substantive claims stay
+operator attestations. What auditgen *does* check is structure and freshness:
+`security.txt` must have a `Contact`, must have an `Expires`, and must not have
+lapsed. An expired `security.txt` is treated as no contact by researchers and most
+tooling, which makes it a real finding rather than a formatting nit.
+
+### Why the fetch guard is strict
+
+The URLs come from repository metadata, which an attacker controls. auditgen runs
+in CI, often on a cloud runner holding instance credentials, so this is an SSRF
+target with credentials at the end of it. `src/util/fetchSafe.ts` allows only
+http/https, resolves DNS and rejects if **any** returned address is private,
+blocks `169.254.169.254` and every other private and link-local range including
+IPv4-mapped IPv6 forms, follows redirects manually so every hop is re-validated,
+and caps time and response size. It fails closed on anything unrecognised.
 
 ## Controls
 
@@ -272,7 +311,10 @@ npm run build
 - **Partial Annex A coverage.** 44 of 93 controls, weighted toward what a
   repository can actually prove. Organisational, physical and people controls
   are listed as needing attestation rather than omitted.
-- **GitHub only.** No GitLab, Bitbucket or Azure DevOps.
+- **GitHub only** for hosted controls. No GitLab, Bitbucket or Azure DevOps.
+- **Published-policy checks are reachability and structure only.** auditgen
+  confirms a privacy notice or trust centre exists and can be fetched. It does not
+  read what the page claims, because a claim on a page is not evidence.
 - **Branch protection needs `administration:read`.** Without it, controls that
   depend on it are reported as unconfirmed rather than failed. This is
   deliberate: "cannot see the rule" and "the rule is absent" are different
